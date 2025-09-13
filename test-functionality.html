@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Functionality Test</title>
+    <style>
+        body { font-family: monospace; background: #000; color: #00ff41; padding: 20px; }
+        button { background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px 20px; margin: 5px; cursor: pointer; }
+        button:hover { background: #001100; }
+        .test-section { margin: 20px 0; border: 1px solid #333; padding: 15px; }
+        input { background: #001100; border: 1px solid #00ff41; color: #00ff41; padding: 5px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>RateIt Functionality Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Authentication Test</h2>
+        <div id="auth-simulation">
+            <h3>Sign In</h3>
+            <input type="text" id="test-username" placeholder="Username" value="Owner">
+            <input type="password" id="test-password" placeholder="Password" value="preview123">
+            <button onclick="testSignIn()">Test Sign In</button>
+            
+            <h3>Sign Up</h3>
+            <input type="text" id="test-signup-name" placeholder="Name">
+            <input type="password" id="test-signup-password" placeholder="Password">
+            <button onclick="testSignUp()">Test Sign Up</button>
+        </div>
+        <div id="auth-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Category Search Test</h2>
+        <input type="text" id="category-test" placeholder="Search categories..." oninput="testCategorySearch(this.value)">
+        <div id="category-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. DOM Elements Check</h2>
+        <button onclick="checkMainAppElements()">Check Main App Elements</button>
+        <div id="dom-check-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Load Main App</h2>
+        <a href="index.html" style="color: #00ff41;">Go to Main RateIt App</a>
+    </div>
+
+    <script>
+        // Test authentication
+        function testSignIn() {
+            const username = document.getElementById('test-username').value;
+            const password = document.getElementById('test-password').value;
+            
+            document.getElementById('auth-result').innerHTML = `
+                <p>Testing sign in with: ${username} / ${password}</p>
+                <p>This simulates what should happen when clicking sign in button</p>
+            `;
+            
+            // Test if we can access the main app's functions
+            if (window.ratingApp) {
+                try {
+                    window.ratingApp.signIn();
+                    document.getElementById('auth-result').innerHTML += '<p style="color: #00ff41;">✓ Successfully called ratingApp.signIn()</p>';
+                } catch (e) {
+                    document.getElementById('auth-result').innerHTML += `<p style="color: #ff0080;">✗ Error: ${e.message}</p>`;
+                }
+            } else {
+                document.getElementById('auth-result').innerHTML += '<p style="color: #ff0080;">✗ ratingApp not found in window</p>';
+            }
+        }
+        
+        function testSignUp() {
+            const name = document.getElementById('test-signup-name').value;
+            const password = document.getElementById('test-signup-password').value;
+            
+            document.getElementById('auth-result').innerHTML = `
+                <p>Testing sign up with: ${name} / ${password}</p>
+            `;
+        }
+        
+        // Test category search
+        function testCategorySearch(query) {
+            const categories = {
+                'food': '🍔 Food & Dining',
+                'restaurants': '🍽️ Restaurants', 
+                'technology': '💻 Technology',
+                'movies': '🎬 Movies & TV',
+                'music': '🎵 Music',
+                'books': '📚 Books'
+            };
+            
+            const results = Object.entries(categories).filter(([key, value]) => 
+                key.toLowerCase().includes(query.toLowerCase()) || 
+                value.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            document.getElementById('category-results').innerHTML = 
+                results.map(([key, value]) => `<div style="padding: 5px; border: 1px solid #333; margin: 2px; cursor: pointer;" onclick="selectCategory('${key}', '${value}')">${value}</div>`).join('');
+        }
+        
+        function selectCategory(key, value) {
+            alert(`Selected: ${key} -> ${value}`);
+            document.getElementById('category-test').value = value;
+            document.getElementById('category-results').innerHTML = '';
+        }
+        
+        // Check if main app elements exist
+        function checkMainAppElements() {
+            const requiredElements = [
+                'auth-section',
+                'signin-btn',
+                'signup-btn', 
+                'signin-username',
+                'signin-password',
+                'signup-name',
+                'signup-password',
+                'category-search',
+                'category-dropdown',
+                'main-content',
+                'items-grid'
+            ];
+            
+            let results = '<h3>Element Check Results:</h3>';
+            requiredElements.forEach(id => {
+                const element = document.getElementById(id);
+                const exists = element !== null;
+                const visible = exists && element.offsetParent !== null;
+                results += `<p>${id}: ${exists ? '✓ Exists' : '✗ Missing'} ${visible ? '(Visible)' : '(Hidden)'}</p>`;
+            });
+            
+            document.getElementById('dom-check-results').innerHTML = results;
+        }
+        
+        console.log('Test page loaded');
+        console.log('RatingApp available:', !!window.ratingApp);
+    </script>
+</body>
+</html>

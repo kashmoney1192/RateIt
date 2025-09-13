@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RateIt - Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .pass { background: #d4edda; }
+        .fail { background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>RateIt Test Page</h1>
+    <div id="results"></div>
+
+    <script>
+        function runTests() {
+            const results = document.getElementById('results');
+            const tests = [];
+
+            // Test localStorage
+            try {
+                localStorage.setItem('test', 'value');
+                localStorage.removeItem('test');
+                tests.push({ name: 'localStorage', status: 'pass', message: 'Working correctly' });
+            } catch (e) {
+                tests.push({ name: 'localStorage', status: 'fail', message: e.message });
+            }
+
+            // Test basic DOM manipulation
+            try {
+                const testDiv = document.createElement('div');
+                testDiv.id = 'test-element';
+                document.body.appendChild(testDiv);
+                const found = document.getElementById('test-element');
+                document.body.removeChild(testDiv);
+                
+                if (found) {
+                    tests.push({ name: 'DOM manipulation', status: 'pass', message: 'Working correctly' });
+                } else {
+                    tests.push({ name: 'DOM manipulation', status: 'fail', message: 'Element not found' });
+                }
+            } catch (e) {
+                tests.push({ name: 'DOM manipulation', status: 'fail', message: e.message });
+            }
+
+            // Test JSON parsing
+            try {
+                const testObj = { name: 'test', value: 123 };
+                const json = JSON.stringify(testObj);
+                const parsed = JSON.parse(json);
+                
+                if (parsed.name === 'test' && parsed.value === 123) {
+                    tests.push({ name: 'JSON parsing', status: 'pass', message: 'Working correctly' });
+                } else {
+                    tests.push({ name: 'JSON parsing', status: 'fail', message: 'Data mismatch' });
+                }
+            } catch (e) {
+                tests.push({ name: 'JSON parsing', status: 'fail', message: e.message });
+            }
+
+            // Display results
+            results.innerHTML = tests.map(test => 
+                `<div class="test ${test.status}">
+                    <strong>${test.name}:</strong> ${test.message}
+                </div>`
+            ).join('');
+
+            console.log('Test results:', tests);
+        }
+
+        // Run tests when page loads
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>
