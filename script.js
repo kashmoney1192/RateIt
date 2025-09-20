@@ -136,55 +136,15 @@ class RatingApp {
         this.init();
         
         // Add debug functions to window for manual testing
+        // Basic debug access for troubleshooting
         window.debugRating = {
             app: this,
-            testSignIn: () => this.signIn(),
-            testSignUp: () => this.signUp(),
-            getUsers: () => this.users,
             getCurrentUser: () => this.currentUser,
             clearData: () => {
                 localStorage.clear();
                 location.reload();
-            },
-            forceSignIn: () => {
-                console.log('🚀 Force sign in triggered');
-                this.currentUser = this.users[0] || null;
-                if (this.currentUser) {
-                    localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-                    this.setupAuthInterface();
-                    console.log('✅ Force sign in successful:', this.currentUser.name);
-                } else {
-                    console.error('❌ No users available for force sign in - no popup shown');
-                }
-            },
-            fillTestCredentials: () => {
-                const usernameField = document.getElementById('signin-username');
-                const passwordField = document.getElementById('signin-password');
-                
-                if (usernameField && passwordField) {
-                    usernameField.value = 'Owner';
-                    passwordField.value = 'preview123';
-                    console.log('✅ Test credentials filled');
-                    return true;
-                } else {
-                    console.error('❌ Could not find form fields');
-                    return false;
-                }
-            },
-            testFullSignIn: () => {
-                console.log('🧪 Testing full sign in process...');
-                
-                // Fill credentials
-                if (window.debugRating.fillTestCredentials()) {
-                    // Wait a moment then sign in
-                    setTimeout(() => {
-                        this.signIn();
-                    }, 100);
-                }
             }
         };
-        
-        console.log('Debug functions available in window.debugRating');
     }
     
     testLocalStorage() {
@@ -248,7 +208,6 @@ class RatingApp {
         
         this.bindEvents();
         this.setupAuthInterface();
-        this.updateSessionUserDisplay();
         this.updateHeaderAuth();
         this.renderItems();
         
@@ -1533,6 +1492,11 @@ class RatingApp {
                                 <span class="clickable-username" data-username="${rating.user}" onclick="window.ratingApp?.showProfileRatingModal('${rating.user}')">${rating.user}</span>
                             </span>
                             <span class="reviewer-rating">${rating.value}★</span>
+                            ${this.isOwner() ? `
+                                <button class="owner-delete-review-btn" onclick="window.ratingApp.ownerDeleteReview(${item.id}, ${rating.id}, '${rating.user}')" title="Delete this review">
+                                    👑🗑️
+                                </button>
+                            ` : ''}
                         `;
                         
                         const reviewContent = document.createElement('p');
@@ -1681,6 +1645,9 @@ class RatingApp {
             this.updateHeaderAuth();
             this.clearAuthForms();
             
+            // Close any auth modals that might be open
+            this.closeAuthModals();
+            
             console.log('🎉 Sign up process completed successfully');
             
         } catch (error) {
@@ -1780,6 +1747,9 @@ class RatingApp {
             this.updateHeaderAuth();
             this.clearAuthForms();
             
+            // Close any auth modals that might be open
+            this.closeAuthModals();
+            
             console.log('🎉 Sign in process completed successfully');
             
         } catch (error) {
@@ -1790,13 +1760,28 @@ class RatingApp {
     }
 
     signOut() {
+        console.log('🔓 Signing out user');
+        
+        // Clear all user data
         this.currentUser = null;
         this.sessionUsername = '';
+        
+        // Clear all localStorage and sessionStorage
         localStorage.removeItem('currentUser');
         sessionStorage.removeItem('sessionUsername');
+        
+        // Also clear any other stored session data
+        sessionStorage.clear();
+        
+        // Reset the interface
         this.setupAuthInterface();
         this.updateHeaderAuth();
         this.hideRatingAsDisplay();
+        
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        console.log('✅ User signed out completely');
     }
 
     setupAuthInterface() {
@@ -1837,6 +1822,38 @@ class RatingApp {
         if (passwordField) passwordField.value = '';
         if (nameField) nameField.value = '';
         if (signupPasswordField) signupPasswordField.value = '';
+    }
+
+    closeAuthModals() {
+        // Close any auth-related modals
+        const modals = [
+            'auth-modal',
+            'signin-modal', 
+            'signup-modal',
+            'username-modal'
+        ];
+        
+        modals.forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        // Also remove any modal backdrop
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        
+        // Hide auth section and scroll to top
+        const authSection = document.getElementById('auth-section');
+        if (authSection) {
+            authSection.style.display = 'none';
+        }
+        
+        // Scroll to top smoothly
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     showAddItemForm() {
@@ -1915,34 +1932,15 @@ class RatingApp {
     }
 
     updateSessionUserDisplay() {
-        // Add or update session user display in the main interface
-        let sessionDisplay = document.getElementById('session-user-display');
-        
-        if (!sessionDisplay) {
-            // Create session user display
-            sessionDisplay = document.createElement('div');
-            sessionDisplay.id = 'session-user-display';
-            sessionDisplay.className = 'session-user-display';
-            
-            // Insert it in the main content area
-            const mainContent = document.getElementById('main-content');
-            if (mainContent) {
-                mainContent.insertBefore(sessionDisplay, mainContent.firstChild);
-            }
-        }
+        // Session user display is disabled - hide any existing display
+        this.hideRatingAsDisplay();
+    }
 
-        if (this.sessionUsername) {
-            sessionDisplay.innerHTML = `
-                <div class="session-user-info">
-                    <span>Rating as: <strong>${this.sessionUsername}</strong></span>
-                    <button onclick="window.debugRating?.app.clearSessionUser()" class="clear-session-btn">
-                        Change User
-                    </button>
-                </div>
-            `;
-            sessionDisplay.style.display = 'block';
-        } else {
+    hideRatingAsDisplay() {
+        const sessionDisplay = document.getElementById('session-user-display');
+        if (sessionDisplay) {
             sessionDisplay.style.display = 'none';
+            sessionDisplay.innerHTML = '';
         }
     }
 
@@ -1950,7 +1948,7 @@ class RatingApp {
         console.log('🗑️ Clearing session user');
         this.sessionUsername = '';
         sessionStorage.removeItem('sessionUsername');
-        this.updateSessionUserDisplay();
+        this.hideRatingAsDisplay();
     }
 
     getTopReviewers() {
@@ -2340,6 +2338,11 @@ class RatingApp {
                     <div class="profile-rating-header">
                         <strong>${rating.raterUser}</strong>
                         <span class="profile-rating-stars">${stars}</span>
+                        ${this.isOwner() ? `
+                            <button class="owner-delete-review-btn" onclick="window.ratingApp.ownerDeleteReview(${rating.itemId}, ${rating.id}, '${rating.raterUser}')" title="Delete this review">
+                                👑🗑️
+                            </button>
+                        ` : ''}
                     </div>
                     ${rating.review ? `<div class="profile-rating-review">${rating.review}</div>` : ''}
                     <div class="profile-rating-date">${this.getRelativeTime(new Date(rating.timestamp))}</div>
@@ -2836,13 +2839,16 @@ class RatingApp {
     // Check if current user is the admin with special credentials
     isAdmin() {
         const currentUser = this.getCurrentUser();
-        return currentUser && currentUser.name === 'Admin' && currentUser.password === 'Admin2025!';
+        return currentUser && (
+            (currentUser.name === 'Admin' && currentUser.password === 'Admin2025!') ||
+            (currentUser.name === 'Admin' && currentUser.isAdmin === true)
+        );
     }
 
     // Check if current user is the owner/admin
     isOwner() {
         const currentUser = this.getCurrentUser();
-        return currentUser && (currentUser.name === 'Owner' || currentUser.name === 'owner' || currentUser.name === 'admin' || this.isAdmin());
+        return currentUser && (currentUser.name === 'Owner' || currentUser.name === 'owner' || currentUser.name === 'admin' || currentUser.name === 'Admin' || this.isAdmin());
     }
 
     // Check if current user can delete a specific post/comment
