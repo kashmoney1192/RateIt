@@ -3503,3 +3503,27 @@ button:active {
         padding: 1.5rem;
     }
 }
+
+/* Page Footer */
+.page-footer {
+    text-align: center;
+    padding: 2rem 1rem;
+    margin-top: 3rem;
+    border-top: 2px solid #00ff41;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 17, 0, 0.9) 100%);
+    color: #00ff41;
+    font-family: 'Share Tech Mono', monospace;
+    text-shadow: 0 0 5px currentColor;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.page-footer p {
+    margin: 0;
+}
+
+.page-footer #last-updated {
+    color: #ff0080;
+    font-weight: bold;
+    text-shadow: 0 0 5px #ff0080;
+}
