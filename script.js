@@ -1790,13 +1790,15 @@ class RatingApp {
     }
 
     signOut() {
+        console.log('🔓 Signing out user...');
         this.currentUser = null;
         this.sessionUsername = '';
         localStorage.removeItem('currentUser');
         sessionStorage.removeItem('sessionUsername');
-        this.setupAuthInterface();
-        this.updateHeaderAuth();
-        this.hideRatingAsDisplay();
+        console.log('✅ User data cleared from storage');
+
+        // Reload the page to ensure clean state
+        window.location.reload();
     }
 
     setupAuthInterface() {
@@ -1821,9 +1823,12 @@ class RatingApp {
             if (authSection) authSection.style.display = 'none';
             if (userSection) userSection.style.display = 'none';
             if (mainContent) mainContent.style.display = 'block';
-            
+
             // Hide the add item form when not signed in
             this.hideAddItemForm();
+
+            // Show all ratings to non-logged-in users too
+            this.renderItems();
         }
     }
 
@@ -3241,16 +3246,28 @@ class RatingApp {
         `;
         
         ratingContainer.style.display = 'block';
-        
+
         if (dropdown) {
             dropdown.classList.add('with-rating');
+            // Dynamically position dropdown below the overall rating
+            setTimeout(() => {
+                const ratingHeight = ratingContainer.offsetHeight;
+                dropdown.style.top = `calc(100% + ${ratingHeight}px)`;
+            }, 0);
         }
     }
 
     hideOverallRating() {
         const ratingContainer = document.getElementById('search-overall-rating');
+        const dropdown = document.getElementById('search-results-dropdown');
+
         if (ratingContainer) {
             ratingContainer.style.display = 'none';
+        }
+
+        if (dropdown) {
+            dropdown.classList.remove('with-rating');
+            dropdown.style.top = '100%';
         }
     }
 

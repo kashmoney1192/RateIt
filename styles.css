@@ -483,6 +483,9 @@ main {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .add-item {
@@ -760,6 +763,10 @@ button:active {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0 1rem;
 }
 
 .item-card {
@@ -1397,21 +1404,26 @@ button:active {
 /* Main layout */
 .main-layout {
     margin-bottom: 2rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 .content-area {
     min-width: 0; /* Prevents overflow */
+    width: 100%;
+    max-width: 100%;
 }
 
 /* Filters styling */
 .filters {
-    background: 
+    background:
         linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.9) 100%);
     border: 1px solid rgba(6, 182, 212, 0.25);
     border-radius: 28px;
     padding: 2.5rem;
     margin-bottom: 2.5rem;
-    box-shadow: 
+    box-shadow:
         0 1px 0 rgba(6, 182, 212, 0.1) inset,
         0 8px 32px rgba(0, 0, 0, 0.25),
         0 16px 40px rgba(0, 0, 0, 0.15),
@@ -1421,6 +1433,9 @@ button:active {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     color: #e2e8f0;
     z-index: 4;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .filters:hover {
@@ -1437,6 +1452,8 @@ button:active {
     display: flex;
     gap: 1rem;
     margin-bottom: 1rem;
+    width: 100%;
+    flex-wrap: wrap;
 }
 
 .filter-row input,
@@ -2594,6 +2611,7 @@ button:active {
 .search-container {
     position: relative;
     flex: 1;
+    min-width: 200px;
 }
 
 .search-overall-rating {
@@ -2605,7 +2623,7 @@ button:active {
     color: white;
     padding: 1rem;
     border-radius: 0 0 8px 8px;
-    z-index: 999;
+    z-index: 1003;
     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
     border: 2px solid #0056b3;
     border-top: none;
@@ -2652,16 +2670,17 @@ button:active {
     border: 2px solid #e1e5e9;
     border-top: none;
     border-radius: 0 0 8px 8px;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 1002;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .search-results-dropdown.with-rating {
-    top: calc(100% + 80px);
+    top: calc(100% + 82px);
     border-radius: 8px;
     border-top: 2px solid #e1e5e9;
+    margin-top: 0;
 }
 
 .search-result-item {
@@ -3420,4 +3439,67 @@ button:active {
     font-style: italic;
     text-align: center;
     background-color: #f8f9fa;
+}
+
+/* Responsive fixes for all window sizes including fullscreen */
+@media (min-width: 769px) and (max-width: 1440px) {
+    .filter-row {
+        flex-wrap: wrap;
+    }
+
+    .search-container {
+        min-width: 250px;
+    }
+
+    .items-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+}
+
+@media (min-width: 1441px) {
+    main {
+        max-width: 1400px;
+    }
+
+    .items-grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+
+    .search-overall-rating,
+    .search-results-dropdown {
+        width: 100%;
+    }
+}
+
+/* Ensure dropdowns don't get cut off on smaller screens */
+@media (max-height: 800px) {
+    .search-results-dropdown {
+        max-height: 250px;
+    }
+
+    .category-dropdown {
+        max-height: 150px;
+    }
+}
+
+/* Fix for very small screens */
+@media (max-width: 480px) {
+    .items-grid {
+        grid-template-columns: 1fr;
+        padding: 0 0.5rem;
+    }
+
+    .filter-row input,
+    .filter-row select {
+        font-size: 0.9rem;
+        padding: 0.7rem;
+    }
+
+    main {
+        padding: 0 0.5rem;
+    }
+
+    .filters {
+        padding: 1.5rem;
+    }
 }
