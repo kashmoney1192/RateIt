@@ -136,15 +136,55 @@ class RatingApp {
         this.init();
         
         // Add debug functions to window for manual testing
-        // Basic debug access for troubleshooting
         window.debugRating = {
             app: this,
+            testSignIn: () => this.signIn(),
+            testSignUp: () => this.signUp(),
+            getUsers: () => this.users,
             getCurrentUser: () => this.currentUser,
             clearData: () => {
                 localStorage.clear();
                 location.reload();
+            },
+            forceSignIn: () => {
+                console.log('🚀 Force sign in triggered');
+                this.currentUser = this.users[0] || null;
+                if (this.currentUser) {
+                    localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                    this.setupAuthInterface();
+                    console.log('✅ Force sign in successful:', this.currentUser.name);
+                } else {
+                    console.error('❌ No users available for force sign in - no popup shown');
+                }
+            },
+            fillTestCredentials: () => {
+                const usernameField = document.getElementById('signin-username');
+                const passwordField = document.getElementById('signin-password');
+                
+                if (usernameField && passwordField) {
+                    usernameField.value = 'Owner';
+                    passwordField.value = 'preview123';
+                    console.log('✅ Test credentials filled');
+                    return true;
+                } else {
+                    console.error('❌ Could not find form fields');
+                    return false;
+                }
+            },
+            testFullSignIn: () => {
+                console.log('🧪 Testing full sign in process...');
+                
+                // Fill credentials
+                if (window.debugRating.fillTestCredentials()) {
+                    // Wait a moment then sign in
+                    setTimeout(() => {
+                        this.signIn();
+                    }, 100);
+                }
             }
         };
+        
+        console.log('Debug functions available in window.debugRating');
     }
     
     testLocalStorage() {
@@ -208,6 +248,7 @@ class RatingApp {
         
         this.bindEvents();
         this.setupAuthInterface();
+        this.updateSessionUserDisplay();
         this.updateHeaderAuth();
         this.renderItems();
         
@@ -1492,11 +1533,6 @@ class RatingApp {
                                 <span class="clickable-username" data-username="${rating.user}" onclick="window.ratingApp?.showProfileRatingModal('${rating.user}')">${rating.user}</span>
                             </span>
                             <span class="reviewer-rating">${rating.value}★</span>
-                            ${this.isOwner() ? `
-                                <button class="owner-delete-review-btn" onclick="window.ratingApp.ownerDeleteReview(${item.id}, ${rating.id}, '${rating.user}')" title="Delete this review">
-                                    👑🗑️
-                                </button>
-                            ` : ''}
                         `;
                         
                         const reviewContent = document.createElement('p');
@@ -1645,9 +1681,6 @@ class RatingApp {
             this.updateHeaderAuth();
             this.clearAuthForms();
             
-            // Close any auth modals that might be open
-            this.closeAuthModals();
-            
             console.log('🎉 Sign up process completed successfully');
             
         } catch (error) {
@@ -1747,9 +1780,6 @@ class RatingApp {
             this.updateHeaderAuth();
             this.clearAuthForms();
             
-            // Close any auth modals that might be open
-            this.closeAuthModals();
-            
             console.log('🎉 Sign in process completed successfully');
             
         } catch (error) {
@@ -1760,28 +1790,15 @@ class RatingApp {
     }
 
     signOut() {
-        console.log('🔓 Signing out user');
-        
-        // Clear all user data
+        console.log('🔓 Signing out user...');
         this.currentUser = null;
         this.sessionUsername = '';
-        
-        // Clear all localStorage and sessionStorage
         localStorage.removeItem('currentUser');
         sessionStorage.removeItem('sessionUsername');
-        
-        // Also clear any other stored session data
-        sessionStorage.clear();
-        
-        // Reset the interface
-        this.setupAuthInterface();
-        this.updateHeaderAuth();
-        this.hideRatingAsDisplay();
-        
-        // Scroll to top
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        
-        console.log('✅ User signed out completely');
+        console.log('✅ User data cleared from storage');
+
+        // Reload the page to ensure clean state
+        window.location.reload();
     }
 
     setupAuthInterface() {
@@ -1806,9 +1823,12 @@ class RatingApp {
             if (authSection) authSection.style.display = 'none';
             if (userSection) userSection.style.display = 'none';
             if (mainContent) mainContent.style.display = 'block';
-            
+
             // Hide the add item form when not signed in
             this.hideAddItemForm();
+
+            // Show all ratings to non-logged-in users too
+            this.renderItems();
         }
     }
 
@@ -1822,38 +1842,6 @@ class RatingApp {
         if (passwordField) passwordField.value = '';
         if (nameField) nameField.value = '';
         if (signupPasswordField) signupPasswordField.value = '';
-    }
-
-    closeAuthModals() {
-        // Close any auth-related modals
-        const modals = [
-            'auth-modal',
-            'signin-modal', 
-            'signup-modal',
-            'username-modal'
-        ];
-        
-        modals.forEach(modalId => {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.style.display = 'none';
-            }
-        });
-        
-        // Also remove any modal backdrop
-        const backdrop = document.querySelector('.modal-backdrop');
-        if (backdrop) {
-            backdrop.remove();
-        }
-        
-        // Hide auth section and scroll to top
-        const authSection = document.getElementById('auth-section');
-        if (authSection) {
-            authSection.style.display = 'none';
-        }
-        
-        // Scroll to top smoothly
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     showAddItemForm() {
@@ -1932,15 +1920,34 @@ class RatingApp {
     }
 
     updateSessionUserDisplay() {
-        // Session user display is disabled - hide any existing display
-        this.hideRatingAsDisplay();
-    }
+        // Add or update session user display in the main interface
+        let sessionDisplay = document.getElementById('session-user-display');
+        
+        if (!sessionDisplay) {
+            // Create session user display
+            sessionDisplay = document.createElement('div');
+            sessionDisplay.id = 'session-user-display';
+            sessionDisplay.className = 'session-user-display';
+            
+            // Insert it in the main content area
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) {
+                mainContent.insertBefore(sessionDisplay, mainContent.firstChild);
+            }
+        }
 
-    hideRatingAsDisplay() {
-        const sessionDisplay = document.getElementById('session-user-display');
-        if (sessionDisplay) {
+        if (this.sessionUsername) {
+            sessionDisplay.innerHTML = `
+                <div class="session-user-info">
+                    <span>Rating as: <strong>${this.sessionUsername}</strong></span>
+                    <button onclick="window.debugRating?.app.clearSessionUser()" class="clear-session-btn">
+                        Change User
+                    </button>
+                </div>
+            `;
+            sessionDisplay.style.display = 'block';
+        } else {
             sessionDisplay.style.display = 'none';
-            sessionDisplay.innerHTML = '';
         }
     }
 
@@ -1948,7 +1955,7 @@ class RatingApp {
         console.log('🗑️ Clearing session user');
         this.sessionUsername = '';
         sessionStorage.removeItem('sessionUsername');
-        this.hideRatingAsDisplay();
+        this.updateSessionUserDisplay();
     }
 
     getTopReviewers() {
@@ -2338,11 +2345,6 @@ class RatingApp {
                     <div class="profile-rating-header">
                         <strong>${rating.raterUser}</strong>
                         <span class="profile-rating-stars">${stars}</span>
-                        ${this.isOwner() ? `
-                            <button class="owner-delete-review-btn" onclick="window.ratingApp.ownerDeleteReview(${rating.itemId}, ${rating.id}, '${rating.raterUser}')" title="Delete this review">
-                                👑🗑️
-                            </button>
-                        ` : ''}
                     </div>
                     ${rating.review ? `<div class="profile-rating-review">${rating.review}</div>` : ''}
                     <div class="profile-rating-date">${this.getRelativeTime(new Date(rating.timestamp))}</div>
@@ -2839,16 +2841,13 @@ class RatingApp {
     // Check if current user is the admin with special credentials
     isAdmin() {
         const currentUser = this.getCurrentUser();
-        return currentUser && (
-            (currentUser.name === 'Admin' && currentUser.password === 'Admin2025!') ||
-            (currentUser.name === 'Admin' && currentUser.isAdmin === true)
-        );
+        return currentUser && currentUser.name === 'Admin' && currentUser.password === 'Admin2025!';
     }
 
     // Check if current user is the owner/admin
     isOwner() {
         const currentUser = this.getCurrentUser();
-        return currentUser && (currentUser.name === 'Owner' || currentUser.name === 'owner' || currentUser.name === 'admin' || currentUser.name === 'Admin' || this.isAdmin());
+        return currentUser && (currentUser.name === 'Owner' || currentUser.name === 'owner' || currentUser.name === 'admin' || this.isAdmin());
     }
 
     // Check if current user can delete a specific post/comment
@@ -3247,16 +3246,28 @@ class RatingApp {
         `;
         
         ratingContainer.style.display = 'block';
-        
+
         if (dropdown) {
             dropdown.classList.add('with-rating');
+            // Dynamically position dropdown below the overall rating
+            setTimeout(() => {
+                const ratingHeight = ratingContainer.offsetHeight;
+                dropdown.style.top = `calc(100% + ${ratingHeight}px)`;
+            }, 0);
         }
     }
 
     hideOverallRating() {
         const ratingContainer = document.getElementById('search-overall-rating');
+        const dropdown = document.getElementById('search-results-dropdown');
+
         if (ratingContainer) {
             ratingContainer.style.display = 'none';
+        }
+
+        if (dropdown) {
+            dropdown.classList.remove('with-rating');
+            dropdown.style.top = '100%';
         }
     }
 
@@ -4365,3 +4376,194 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.style.overflow = 'auto';
     document.documentElement.style.overflow = 'auto';
 });
+
+// ==================== VISITOR TRACKING & BOT VERIFICATION ====================
+
+class VisitorTracker {
+    constructor() {
+        console.log('🔍 VisitorTracker constructor called');
+        this.initVisitorTracking();
+        this.initBotVerification();
+    }
+
+    // Generate a unique visitor ID
+    generateVisitorId() {
+        return 'visitor_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+    }
+
+    // Initialize visitor tracking
+    initVisitorTracking() {
+        // Get or create visitor data
+        let visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+
+        // Check if this visitor has been counted before
+        let visitorId = localStorage.getItem('visitorId');
+        if (!visitorId) {
+            // New visitor - create unique ID
+            visitorId = this.generateVisitorId();
+            localStorage.setItem('visitorId', visitorId);
+
+            // Add to visitor count
+            if (!visitorData.visitors) {
+                visitorData.visitors = [];
+            }
+            visitorData.visitors.push({
+                id: visitorId,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            });
+
+            localStorage.setItem('visitorData', JSON.stringify(visitorData));
+        }
+
+        // Update visitor count display
+        this.updateVisitorCount();
+    }
+
+    // Update the visitor count in the UI
+    updateVisitorCount() {
+        const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+        const count = visitorData.visitors ? visitorData.visitors.length : 0;
+        const visitorCountElement = document.getElementById('visitor-count');
+        if (visitorCountElement) {
+            visitorCountElement.textContent = count;
+        }
+    }
+
+    // Initialize bot verification
+    initBotVerification() {
+        // Check if device is already verified
+        const isVerified = localStorage.getItem('botVerified');
+        const verificationTimestamp = localStorage.getItem('botVerifiedTimestamp');
+
+        // Verification expires after 30 days
+        const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+        const isExpired = verificationTimestamp &&
+            (Date.now() - parseInt(verificationTimestamp)) > thirtyDaysInMs;
+
+        if (!isVerified || isExpired) {
+            // Show bot verification modal after a short delay to ensure page is loaded
+            setTimeout(() => {
+                this.showBotVerification();
+            }, 500);
+        } else {
+            console.log('✅ Device already verified');
+        }
+    }
+
+    // Show bot verification modal
+    showBotVerification() {
+        const modal = document.getElementById('bot-verification-modal');
+        if (!modal) return;
+
+        modal.style.display = 'flex';
+
+        // Initialize slider
+        this.initSlider();
+    }
+
+    // Hide bot verification modal
+    hideBotVerification() {
+        const modal = document.getElementById('bot-verification-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // Initialize the slider functionality
+    initSlider() {
+        const thumb = document.getElementById('slider-thumb');
+        const progress = document.getElementById('slider-progress');
+        const track = thumb.parentElement;
+        const statusElement = document.getElementById('verification-status');
+
+        let isDragging = false;
+        let startX = 0;
+        let currentX = 0;
+        const maxWidth = track.offsetWidth - thumb.offsetWidth;
+
+        const handleStart = (e) => {
+            isDragging = true;
+            startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            currentX = thumb.offsetLeft;
+            statusElement.textContent = '';
+            statusElement.className = 'verification-status';
+        };
+
+        const handleMove = (e) => {
+            if (!isDragging) return;
+
+            e.preventDefault();
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const deltaX = clientX - startX;
+            let newX = currentX + deltaX;
+
+            // Constrain movement
+            newX = Math.max(0, Math.min(newX, maxWidth));
+
+            // Update thumb position
+            thumb.style.left = newX + 'px';
+            progress.style.width = (newX / maxWidth * 100) + '%';
+
+            // Check if slider reached the end
+            if (newX >= maxWidth * 0.95) {
+                this.verifySuccess();
+                isDragging = false;
+            }
+        };
+
+        const handleEnd = () => {
+            if (!isDragging) return;
+            isDragging = false;
+
+            const currentPosition = thumb.offsetLeft;
+
+            // If not completed, reset slider
+            if (currentPosition < maxWidth * 0.95) {
+                thumb.style.left = '0px';
+                progress.style.width = '0%';
+                statusElement.textContent = 'Please slide all the way to verify';
+                statusElement.className = 'verification-status error';
+            }
+        };
+
+        // Mouse events
+        thumb.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', handleEnd);
+
+        // Touch events for mobile
+        thumb.addEventListener('touchstart', handleStart, { passive: false });
+        document.addEventListener('touchmove', handleMove, { passive: false });
+        document.addEventListener('touchend', handleEnd);
+    }
+
+    // Handle successful verification
+    verifySuccess() {
+        const statusElement = document.getElementById('verification-status');
+        statusElement.textContent = '✓ Verified! You are human';
+        statusElement.className = 'verification-status success';
+
+        // Save verification status
+        localStorage.setItem('botVerified', 'true');
+        localStorage.setItem('botVerifiedTimestamp', Date.now().toString());
+
+        // Hide modal after 1.5 seconds
+        setTimeout(() => {
+            this.hideBotVerification();
+        }, 1500);
+    }
+}
+
+// Initialize visitor tracker when document is ready
+let visitorTracker;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        visitorTracker = new VisitorTracker();
+    });
+} else {
+    visitorTracker = new VisitorTracker();
+}
+
+// Make it globally accessible
+window.visitorTracker = visitorTracker;
