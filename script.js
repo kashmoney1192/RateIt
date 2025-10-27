@@ -4376,3 +4376,194 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.style.overflow = 'auto';
     document.documentElement.style.overflow = 'auto';
 });
+
+// ==================== VISITOR TRACKING & BOT VERIFICATION ====================
+
+class VisitorTracker {
+    constructor() {
+        console.log('🔍 VisitorTracker constructor called');
+        this.initVisitorTracking();
+        this.initBotVerification();
+    }
+
+    // Generate a unique visitor ID
+    generateVisitorId() {
+        return 'visitor_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+    }
+
+    // Initialize visitor tracking
+    initVisitorTracking() {
+        // Get or create visitor data
+        let visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+
+        // Check if this visitor has been counted before
+        let visitorId = localStorage.getItem('visitorId');
+        if (!visitorId) {
+            // New visitor - create unique ID
+            visitorId = this.generateVisitorId();
+            localStorage.setItem('visitorId', visitorId);
+
+            // Add to visitor count
+            if (!visitorData.visitors) {
+                visitorData.visitors = [];
+            }
+            visitorData.visitors.push({
+                id: visitorId,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            });
+
+            localStorage.setItem('visitorData', JSON.stringify(visitorData));
+        }
+
+        // Update visitor count display
+        this.updateVisitorCount();
+    }
+
+    // Update the visitor count in the UI
+    updateVisitorCount() {
+        const visitorData = JSON.parse(localStorage.getItem('visitorData') || '{}');
+        const count = visitorData.visitors ? visitorData.visitors.length : 0;
+        const visitorCountElement = document.getElementById('visitor-count');
+        if (visitorCountElement) {
+            visitorCountElement.textContent = count;
+        }
+    }
+
+    // Initialize bot verification
+    initBotVerification() {
+        // Check if device is already verified
+        const isVerified = localStorage.getItem('botVerified');
+        const verificationTimestamp = localStorage.getItem('botVerifiedTimestamp');
+
+        // Verification expires after 30 days
+        const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+        const isExpired = verificationTimestamp &&
+            (Date.now() - parseInt(verificationTimestamp)) > thirtyDaysInMs;
+
+        if (!isVerified || isExpired) {
+            // Show bot verification modal after a short delay to ensure page is loaded
+            setTimeout(() => {
+                this.showBotVerification();
+            }, 500);
+        } else {
+            console.log('✅ Device already verified');
+        }
+    }
+
+    // Show bot verification modal
+    showBotVerification() {
+        const modal = document.getElementById('bot-verification-modal');
+        if (!modal) return;
+
+        modal.style.display = 'flex';
+
+        // Initialize slider
+        this.initSlider();
+    }
+
+    // Hide bot verification modal
+    hideBotVerification() {
+        const modal = document.getElementById('bot-verification-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // Initialize the slider functionality
+    initSlider() {
+        const thumb = document.getElementById('slider-thumb');
+        const progress = document.getElementById('slider-progress');
+        const track = thumb.parentElement;
+        const statusElement = document.getElementById('verification-status');
+
+        let isDragging = false;
+        let startX = 0;
+        let currentX = 0;
+        const maxWidth = track.offsetWidth - thumb.offsetWidth;
+
+        const handleStart = (e) => {
+            isDragging = true;
+            startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            currentX = thumb.offsetLeft;
+            statusElement.textContent = '';
+            statusElement.className = 'verification-status';
+        };
+
+        const handleMove = (e) => {
+            if (!isDragging) return;
+
+            e.preventDefault();
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const deltaX = clientX - startX;
+            let newX = currentX + deltaX;
+
+            // Constrain movement
+            newX = Math.max(0, Math.min(newX, maxWidth));
+
+            // Update thumb position
+            thumb.style.left = newX + 'px';
+            progress.style.width = (newX / maxWidth * 100) + '%';
+
+            // Check if slider reached the end
+            if (newX >= maxWidth * 0.95) {
+                this.verifySuccess();
+                isDragging = false;
+            }
+        };
+
+        const handleEnd = () => {
+            if (!isDragging) return;
+            isDragging = false;
+
+            const currentPosition = thumb.offsetLeft;
+
+            // If not completed, reset slider
+            if (currentPosition < maxWidth * 0.95) {
+                thumb.style.left = '0px';
+                progress.style.width = '0%';
+                statusElement.textContent = 'Please slide all the way to verify';
+                statusElement.className = 'verification-status error';
+            }
+        };
+
+        // Mouse events
+        thumb.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', handleEnd);
+
+        // Touch events for mobile
+        thumb.addEventListener('touchstart', handleStart, { passive: false });
+        document.addEventListener('touchmove', handleMove, { passive: false });
+        document.addEventListener('touchend', handleEnd);
+    }
+
+    // Handle successful verification
+    verifySuccess() {
+        const statusElement = document.getElementById('verification-status');
+        statusElement.textContent = '✓ Verified! You are human';
+        statusElement.className = 'verification-status success';
+
+        // Save verification status
+        localStorage.setItem('botVerified', 'true');
+        localStorage.setItem('botVerifiedTimestamp', Date.now().toString());
+
+        // Hide modal after 1.5 seconds
+        setTimeout(() => {
+            this.hideBotVerification();
+        }, 1500);
+    }
+}
+
+// Initialize visitor tracker when document is ready
+let visitorTracker;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        visitorTracker = new VisitorTracker();
+    });
+} else {
+    visitorTracker = new VisitorTracker();
+}
+
+// Make it globally accessible
+window.visitorTracker = visitorTracker;

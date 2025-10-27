@@ -12,6 +12,10 @@
             <div class="header-main">
                 <h1>RateIt</h1>
                 <p>Rate anything you want!</p>
+                <div class="visitor-counter">
+                    <span class="visitor-icon">👁️</span>
+                    <span id="visitor-count">0</span> visitors
+                </div>
             </div>
             <div class="header-auth" id="header-auth">
                 <button id="header-signin-btn" class="header-auth-btn">Sign In</button>
@@ -25,6 +29,24 @@
             </div>
         </div>
     </header>
+
+    <!-- Bot Verification Modal -->
+    <div id="bot-verification-modal" class="bot-verification-modal" style="display: none;">
+        <div class="bot-verification-content">
+            <h2>🔒 Verify You're Human</h2>
+            <p>Please slide to verify you're not a bot</p>
+            <div class="slider-container">
+                <div class="slider-track">
+                    <div class="slider-thumb" id="slider-thumb">
+                        <span class="slider-arrow">→</span>
+                    </div>
+                    <div class="slider-text">Slide to verify</div>
+                    <div class="slider-progress" id="slider-progress"></div>
+                </div>
+            </div>
+            <div class="verification-status" id="verification-status"></div>
+        </div>
+    </div>
 
     <section class="auth-section" id="auth-section">
         <div class="auth-container">
